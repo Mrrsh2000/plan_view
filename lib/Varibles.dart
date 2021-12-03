@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
 final List weekend = [
   'شنبه',
   'یکشنبه',
@@ -20,3 +23,14 @@ final List timed = [
   '17-18',
   '18-19'
 ];
+
+ShowToast(String msgText, Color back, Color text) {
+  return Fluttertoast.showToast(
+      msg: msgText,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: back,
+      textColor: text,
+      fontSize: 16.0);
+}

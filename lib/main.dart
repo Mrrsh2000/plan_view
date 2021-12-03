@@ -15,17 +15,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter W',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
+        fontFamily: "Vazir",
         primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -76,16 +68,29 @@ class _MyHomePageState extends State<MyHomePage> {
   late List<List<TextEditingController>> controller;
 
   @override
+  void initState() {
+    _loadWeekend(11, 7, controller);
+    _getName(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Show Table'),
+        title: const Text('داده پرداز تدبیر فردا'),
         actions: [
+          TextButton(
+            onPressed: () {},
+            child: const Text(
+              "وب",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
           TextButton(
             onPressed: () {
               _loadWeekend(11, 7, controller);
             },
-            child: Text(
+            child: const Text(
               "بارگزاری",
               style: TextStyle(color: Colors.white),
             ),
@@ -93,8 +98,10 @@ class _MyHomePageState extends State<MyHomePage> {
           TextButton(
               onPressed: () {
                 _saveWeekend(11, 7, controller);
+                ShowToast("اطلاعات با موفقیت ذخیره شدند", Colors.greenAccent,
+                    Colors.green);
               },
-              child: Text(
+              child: const Text(
                 "ذخیره",
                 style: TextStyle(color: Colors.white),
               ))
@@ -110,14 +117,16 @@ class _MyHomePageState extends State<MyHomePage> {
           child: TextField(
             controller: controller[i][j],
             textAlign: TextAlign.center,
-            decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: controller[i][j].text.toString().isEmpty
-                    ? ""
-                    : controller[i][j].text.toString()),
+            maxLines: null,
+            expands: true,
+            keyboardType: TextInputType.multiline,
+            decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(vertical: 5),
+                border: OutlineInputBorder(),
+                labelText: ""),
           ),
         ),
-        legendCell: Text('روز های هفته'),
+        legendCell: const Text('روز های هفته'),
       ),
     );
   }
@@ -128,8 +137,6 @@ _saveWeekend(
   SharedPreferences prefs = await SharedPreferences.getInstance();
   for (int i = 0; i < value_i; i++) {
     for (int j = 0; j < value_j; j++) {
-      print('counter$i$j');
-      print('data => ' + data[i][j].text.toString());
       await prefs.setString('counter$i$j', data[i][j].text);
     }
   }
@@ -140,9 +147,60 @@ _loadWeekend(
   SharedPreferences prefs = await SharedPreferences.getInstance();
   for (int i = 0; i < value_i; i++) {
     for (int j = 0; j < value_j; j++) {
-      print('counter$i$j');
-      print('data => ' + data[i][j].text.toString());
       data[i][j].text = prefs.getString('counter$i$j')!;
     }
   }
+}
+
+_getName(context) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  if (prefs.getBool('is_name') == false || prefs.getBool('is_name') == null) {
+    _displayTextInputDialog(context, prefs);
+  }
+}
+
+Future<void> _displayTextInputDialog(
+    BuildContext context, SharedPreferences prefs) async {
+  TextEditingController _textFieldController = new TextEditingController();
+  return showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('نام خود را وارد کنید'),
+        content: TextField(
+          controller: _textFieldController,
+          decoration: InputDecoration(hintText: "نام شما ..."),
+        ),
+        actions: [
+          TextButton(
+            child: Text('تایید'),
+            onPressed: () async {
+              if (_textFieldController!.text == "" ||
+                  _textFieldController!.text == null) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text(
+                    "نام خود را وارد کنید!",
+                    style: TextStyle(fontFamily: "Vazir"),
+                    textAlign: TextAlign.end,
+                  ),
+                ));
+              } else {
+                await prefs.setBool('is_name', true);
+                await prefs.setString('name', _textFieldController!.text);
+                _textFieldController.text = "";
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text(
+                    "نام شما با موفقیت ذخیره شد!",
+                    style: TextStyle(fontFamily: "Vazir"),
+                    textAlign: TextAlign.end,
+                  ),
+                ));
+              }
+            },
+          ),
+        ],
+      );
+    },
+  );
 }
