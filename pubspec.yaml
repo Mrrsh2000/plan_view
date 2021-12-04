@@ -37,6 +37,9 @@ dependencies:
   table_sticky_headers: ^2.0.0
   shared_preferences: ^2.0.9
   fluttertoast: ^8.0.8
+  path_provider: ^2.0.7
+  http: ^0.13.4
+  url_launcher: ^6.0.17
 
 dev_dependencies:
   flutter_test:

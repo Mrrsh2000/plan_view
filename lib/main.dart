@@ -1,8 +1,15 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:plan_view/api/request/WeeklyRequest.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_sticky_headers/table_sticky_headers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'Varibles.dart';
+import 'api/model/Weekend.dart';
 
 void main() {
   runApp(const MyApp());
@@ -80,9 +87,11 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text('داده پرداز تدبیر فردا'),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () {
+              getFile(context);
+            },
             child: const Text(
-              "وب",
+              "نمایش وب",
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -98,8 +107,9 @@ class _MyHomePageState extends State<MyHomePage> {
           TextButton(
               onPressed: () {
                 _saveWeekend(11, 7, controller);
-                ShowToast("اطلاعات با موفقیت ذخیره شدند", Colors.greenAccent,
+                ShowToast("اطلاعات با موفقیت در حافظه ذخیره شدند", Colors.greenAccent,
                     Colors.green);
+                sendFile(context);
               },
               child: const Text(
                 "ذخیره",
@@ -140,6 +150,19 @@ _saveWeekend(
       await prefs.setString('counter$i$j', data[i][j].text);
     }
   }
+  String html = "";
+  name = await prefs.getString("name");
+  html = header;
+  for (int i = 0; i < value_i; i++) {
+    html = html + "<tr>";
+    html = html + ("<td>" + timed[i] + "</td>");
+    for (int j = 0; j < value_j; j++) {
+      html = html + ("<td>" + data[i][j].text + "</td>");
+    }
+    html = html + "/<tr>";
+  }
+  html = html + footer;
+  writeCounter(html);
 }
 
 _loadWeekend(
@@ -156,6 +179,13 @@ _getName(context) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   if (prefs.getBool('is_name') == false || prefs.getBool('is_name') == null) {
     _displayTextInputDialog(context, prefs);
+  }
+  if(prefs.getInt('code') == 0 || prefs.getInt('code') == null){
+
+  }else{
+    var rng = new Random();
+    int code = rng.nextInt(10000);
+    await prefs.setInt('code', code);
   }
 }
 
@@ -175,8 +205,8 @@ Future<void> _displayTextInputDialog(
           TextButton(
             child: Text('تایید'),
             onPressed: () async {
-              if (_textFieldController!.text == "" ||
-                  _textFieldController!.text == null) {
+              if (_textFieldController.text == "" ||
+                  _textFieldController.text == null) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text(
                     "نام خود را وارد کنید!",
@@ -186,7 +216,7 @@ Future<void> _displayTextInputDialog(
                 ));
               } else {
                 await prefs.setBool('is_name', true);
-                await prefs.setString('name', _textFieldController!.text);
+                await prefs.setString('name', _textFieldController.text);
                 _textFieldController.text = "";
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -203,4 +233,57 @@ Future<void> _displayTextInputDialog(
       );
     },
   );
+}
+
+Future<String> get _localPath async {
+  final directory =
+      await getExternalStorageDirectories(type: StorageDirectory.downloads);
+  return directory!.first.path;
+}
+
+Future<File> get _localFile async {
+  final path = await _localPath;
+  return File('$path/plan.html');
+}
+
+Future<File> writeCounter(String text) async {
+  final file = await _localFile;
+  return file.writeAsString(text);
+}
+
+sendFile(context) async{
+  final file = await _localFile;
+  bool is_send = await WeekendServer.SendFileInWeekend(file.path);
+  if (is_send) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+        "فایل با موفقیت به سرور ارسال شد!",
+        style: TextStyle(fontFamily: "Vazir"),
+        textAlign: TextAlign.end,
+      ),
+    ));
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+        "خطا در ارسال فایل سمت سرور لطفا مجددا تلاش کنید!",
+        style: TextStyle(fontFamily: "Vazir"),
+        textAlign: TextAlign.end,
+      ),
+    ));
+  }
+}
+
+getFile(context) async {
+  Weekend weekend = await WeekendServer.GetWeekendData();
+  if(weekend.success == "false"){
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+        "شما داده ای در سرور ذخیره نکرده اید!",
+        style: TextStyle(fontFamily: "Vazir"),
+        textAlign: TextAlign.end,
+      ),
+    ));
+  }else{
+    await launch("server" + weekend.html_file.toString());
+  }
 }
