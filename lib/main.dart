@@ -3,7 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:plan_view/api/request/WeeklyRequest.dart';
+import 'package:plan_view/api/request/weekly_request.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_sticky_headers/table_sticky_headers.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -236,9 +236,8 @@ Future<void> _displayTextInputDialog(
 }
 
 Future<String> get _localPath async {
-  final directory =
-      await getExternalStorageDirectories(type: StorageDirectory.downloads);
-  return directory!.first.path;
+  final directory = await getExternalStorageDirectory();
+  return directory!.path;
 }
 
 Future<File> get _localFile async {

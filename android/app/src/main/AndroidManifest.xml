@@ -2,6 +2,7 @@
     package="com.example.plan_view">
    <application
         android:label="plan_view"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -34,6 +35,15 @@
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+       <provider
+           android:name="androidx.core.content.FileProvider"
+           android:authorities="com.mydomain.fileprovider"
+           android:exported="false"
+           android:grantUriPermissions="true">
+           <meta-data
+               android:name="android.support.FILE_PROVIDER_PATHS"
+               android:resource="@xml/file_provider" />
+       </provider>
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

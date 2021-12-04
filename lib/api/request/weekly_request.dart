@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:plan_view/api/model/Weekend.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,7 +37,12 @@ class WeekendServer {
     var request = http.MultipartRequest(
         'POST', Uri.parse('http://127.0.0.1:8000/api/vi/user-file/'));
     request.fields.addAll({'title': name, 'code': code});
-    request.files.add(await http.MultipartFile.fromPath('html_file', path));
+    var multipartFile = http.MultipartFile.fromBytes(
+      'html_file',
+      File(path).readAsBytesSync(),
+    );
+
+    request.files.add(multipartFile);
 
     http.StreamedResponse response =
         await request.send().timeout(Duration(seconds: 10));
