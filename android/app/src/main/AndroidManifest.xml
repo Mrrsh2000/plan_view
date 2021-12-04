@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.plan_view">
+    <uses-permission android:name="android.permission.INTERNET" />
    <application
         android:label="plan_view"
         android:requestLegacyExternalStorage="true"
@@ -48,4 +49,5 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

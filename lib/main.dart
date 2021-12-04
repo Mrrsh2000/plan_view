@@ -105,11 +105,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           TextButton(
-              onPressed: () {
-                _saveWeekend(11, 7, controller);
+              onPressed: () async {
+                await _saveWeekend(11, 7, controller);
                 ShowToast("اطلاعات با موفقیت در حافظه ذخیره شدند",
                     Colors.greenAccent, Colors.green);
-                sendFile(context);
+                await sendFile(context);
               },
               child: const Text(
                 "ذخیره",
@@ -143,8 +143,14 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 _saveWeekend(
-    int value_i, int value_j, List<List<TextEditingController>> data) async {
+  int value_i,
+  int value_j,
+  List<List<TextEditingController>> data,
+) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  int code = Random().nextInt(10000000);
+  await prefs.setInt('code', code);
   for (int i = 0; i < value_i; i++) {
     for (int j = 0; j < value_j; j++) {
       await prefs.setString('counter$i$j', data[i][j].text);
@@ -236,24 +242,20 @@ Future<String> get _localPath async {
 Future<File> get _localFile async {
   final path = await _localPath;
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? dataCode;
-  if (prefs.getInt('code') == 0 || prefs.getInt('code') == null) {
-    var rng = new Random();
-    int code = rng.nextInt(10000);
-    await prefs.setInt('code', code);
-  } else {
-    dataCode = (await prefs.getInt('code'))!.toString();
-  }
+  String? dataCode = prefs.getInt('code')?.toString();
   return File('$path/plan$dataCode.html');
 }
 
 Future<File> writeCounter(String text) async {
   final file = await _localFile;
-  return file.writeAsString(text);
+  final result = file.writeAsString(text);
+  print('result => file saved');
+  return result;
 }
 
 sendFile(context) async {
   final file = await _localFile;
+  print('file => ' + file.path);
   bool is_send = await WeekendServer.SendFileInWeekend(file.path);
   if (is_send) {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -286,8 +288,7 @@ getFile(context) async {
   //   ));
   // }else{
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? dataCode;
-  dataCode = (await prefs.getInt('code'))!.toString();
+  String? dataCode = prefs.getInt('code')?.toString();
   await launch("https://weekly.kashandevops.ir/media/media/plan$dataCode.html");
   // }
 }
