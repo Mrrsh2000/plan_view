@@ -107,8 +107,8 @@ class _MyHomePageState extends State<MyHomePage> {
           TextButton(
               onPressed: () {
                 _saveWeekend(11, 7, controller);
-                ShowToast("اطلاعات با موفقیت در حافظه ذخیره شدند", Colors.greenAccent,
-                    Colors.green);
+                ShowToast("اطلاعات با موفقیت در حافظه ذخیره شدند",
+                    Colors.greenAccent, Colors.green);
                 sendFile(context);
               },
               child: const Text(
@@ -180,13 +180,6 @@ _getName(context) async {
   if (prefs.getBool('is_name') == false || prefs.getBool('is_name') == null) {
     _displayTextInputDialog(context, prefs);
   }
-  if(prefs.getInt('code') == 0 || prefs.getInt('code') == null){
-
-  }else{
-    var rng = new Random();
-    int code = rng.nextInt(10000);
-    await prefs.setInt('code', code);
-  }
 }
 
 Future<void> _displayTextInputDialog(
@@ -242,7 +235,16 @@ Future<String> get _localPath async {
 
 Future<File> get _localFile async {
   final path = await _localPath;
-  return File('$path/plan.html');
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? dataCode;
+  if (prefs.getInt('code') == 0 || prefs.getInt('code') == null) {
+    var rng = new Random();
+    int code = rng.nextInt(10000);
+    await prefs.setInt('code', code);
+  } else {
+    dataCode = (await prefs.getInt('code'))!.toString();
+  }
+  return File('$path/plan$dataCode.html');
 }
 
 Future<File> writeCounter(String text) async {
@@ -250,7 +252,7 @@ Future<File> writeCounter(String text) async {
   return file.writeAsString(text);
 }
 
-sendFile(context) async{
+sendFile(context) async {
   final file = await _localFile;
   bool is_send = await WeekendServer.SendFileInWeekend(file.path);
   if (is_send) {
@@ -273,16 +275,19 @@ sendFile(context) async{
 }
 
 getFile(context) async {
-  Weekend weekend = await WeekendServer.GetWeekendData();
-  if(weekend.success == "false"){
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        "شما داده ای در سرور ذخیره نکرده اید!",
-        style: TextStyle(fontFamily: "Vazir"),
-        textAlign: TextAlign.end,
-      ),
-    ));
-  }else{
-    await launch("server" + weekend.html_file.toString());
-  }
+  // Weekend weekend = await WeekendServer.GetWeekendData();
+  // if(weekend.success == "false"){
+  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //     content: Text(
+  //       "شما داده ای در سرور ذخیره نکرده اید!",
+  //       style: TextStyle(fontFamily: "Vazir"),
+  //       textAlign: TextAlign.end,
+  //     ),
+  //   ));
+  // }else{
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? dataCode;
+  dataCode = (await prefs.getInt('code'))!.toString();
+  await launch("https://weekly.kashandevops.ir/media/media/plan$dataCode.html");
+  // }
 }
