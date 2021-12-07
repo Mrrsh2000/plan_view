@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'package:plan_view/api/model/Weekend.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http_parser/src/media_type.dart';
 
 class WeekendServer {
   static Future<bool> SendFileInWeekend(String path) async {
