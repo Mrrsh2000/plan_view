@@ -4,13 +4,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:plan_view/api/request/weekly_request.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_sticky_headers/table_sticky_headers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'Varibles.dart';
 import 'api/model/Weekend.dart';
-
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -19,8 +19,6 @@ class MyHttpOverrides extends HttpOverrides {
       ..badCertificateCallback = (cert, host, port) => true;
   }
 }
-
-
 
 void main() {
   HttpOverrides.global = MyHttpOverrides();
@@ -89,7 +87,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _loadWeekend(11, 7, controller);
+    _loadWeekend(11, 7, controller, context);
     _getName(context);
   }
 
@@ -110,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           TextButton(
             onPressed: () {
-              _loadWeekend(11, 7, controller);
+              _loadWeekend(11, 7, controller, context);
             },
             child: const Text(
               "بارگزاری",
@@ -184,8 +182,35 @@ _saveWeekend(
   writeCounter(html);
 }
 
-_loadWeekend(
-    int value_i, int value_j, List<List<TextEditingController>> data) async {
+_loadWeekend(int value_i, int value_j, List<List<TextEditingController>> data,
+    context) async {
+  Alert(
+    context: context,
+    type: AlertType.none,
+    title: "RFLUTTER ALERT",
+    desc: "Flutter is more awesome with RFlutter Alert.",
+    buttons: [
+      DialogButton(
+        child: Text(
+          "FLAT",
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        onPressed: () => Navigator.pop(context),
+        color: Color.fromRGBO(0, 179, 134, 1.0),
+      ),
+      DialogButton(
+        child: Text(
+          "GRADIENT",
+          style: TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        onPressed: () => Navigator.pop(context),
+        gradient: LinearGradient(colors: [
+          Color.fromRGBO(116, 116, 191, 1.0),
+          Color.fromRGBO(52, 138, 199, 1.0)
+        ]),
+      )
+    ],
+  ).show();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   for (int i = 0; i < value_i; i++) {
     for (int j = 0; j < value_j; j++) {
