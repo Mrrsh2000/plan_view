@@ -9,8 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_sticky_headers/table_sticky_headers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'Varibles.dart';
-import 'api/model/Weekend.dart';
+import 'varibles.dart';
+import 'api/model/weekend_model.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -87,8 +87,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    _loadWeekend(11, 7, controller, context);
-    _getName(context);
+    loadWeekendDevice(11, 7, controller);
+    getName(context);
   }
 
   @override
@@ -107,20 +107,57 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              _loadWeekend(11, 7, controller, context);
+            onPressed: () async {
+              loadWeekendWeb(context, controller);
             },
             child: const Text(
-              "بارگزاری",
+              "بارگیری",
               style: TextStyle(color: Colors.white),
             ),
           ),
           TextButton(
               onPressed: () async {
-                await _saveWeekend(11, 7, controller);
-                ShowToast("اطلاعات با موفقیت در حافظه ذخیره شدند",
-                    Colors.greenAccent, Colors.green);
-                await sendFile(context);
+                try {
+                  final result =
+                      await InternetAddress.lookup('weekly.kashandevops.ir');
+                  if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+                    await createMapData(11, 7, controller);
+                    await saveWeekendWeb(11, 7, controller);
+                    await sendFile(context);
+                    await saveWeekendLocal(11, 7, controller);
+                  }
+                } on SocketException catch (_) {
+                  Alert(
+                    context: context,
+                    type: AlertType.error,
+                    title: "اتصال ناموفق",
+                    desc: "!لطفا اتصال اینترنتی خود را چک کنید",
+                    buttons: [
+                      DialogButton(
+                        child: const Text(
+                          "ذخیره در حافظه داخلی",
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                        onPressed: () async {
+                          await saveWeekendLocal(11, 7, controller);
+                          showToast("اطلاعات با موفقیت در حافظه ذخیره شدند",
+                              Colors.green, Colors.black);
+                          Navigator.pop(context);
+                        },
+                        color: const Color.fromRGBO(90, 116, 204, 1.0),
+                      ),
+                      DialogButton(
+                        child: const Text(
+                          "بازگشت",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        color: Color.fromRGBO(0, 179, 134, 1.0),
+                      )
+                    ],
+                  ).show();
+                }
               },
               child: const Text(
                 "ذخیره",
@@ -153,125 +190,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-_saveWeekend(
-  int value_i,
-  int value_j,
-  List<List<TextEditingController>> data,
-) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-
-  int code = Random().nextInt(10000000);
-  await prefs.setInt('code', code);
-  for (int i = 0; i < value_i; i++) {
-    for (int j = 0; j < value_j; j++) {
-      await prefs.setString('counter$i$j', data[i][j].text);
-    }
-  }
-  String html = "";
-  name = await prefs.getString("name");
-  html = header;
-  for (int i = 0; i < value_i; i++) {
-    html = html + "<tr>";
-    html = html + ("<td>" + timed[i] + "</td>");
-    for (int j = 0; j < value_j; j++) {
-      html = html + ("<td>" + data[i][j].text + "</td>");
-    }
-    html = html + "/<tr>";
-  }
-  html = html + footer;
-  writeCounter(html);
-}
-
-_loadWeekend(int value_i, int value_j, List<List<TextEditingController>> data,
-    context) async {
-  Alert(
-    context: context,
-    type: AlertType.none,
-    title: "RFLUTTER ALERT",
-    desc: "Flutter is more awesome with RFlutter Alert.",
-    buttons: [
-      DialogButton(
-        child: Text(
-          "FLAT",
-          style: TextStyle(color: Colors.white, fontSize: 20),
-        ),
-        onPressed: () => Navigator.pop(context),
-        color: Color.fromRGBO(0, 179, 134, 1.0),
-      ),
-      DialogButton(
-        child: Text(
-          "GRADIENT",
-          style: TextStyle(color: Colors.white, fontSize: 20),
-        ),
-        onPressed: () => Navigator.pop(context),
-        gradient: LinearGradient(colors: [
-          Color.fromRGBO(116, 116, 191, 1.0),
-          Color.fromRGBO(52, 138, 199, 1.0)
-        ]),
-      )
-    ],
-  ).show();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  for (int i = 0; i < value_i; i++) {
-    for (int j = 0; j < value_j; j++) {
-      data[i][j].text = prefs.getString('counter$i$j')!;
-    }
-  }
-}
-
-_getName(context) async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  if (prefs.getBool('is_name') == false || prefs.getBool('is_name') == null) {
-    _displayTextInputDialog(context, prefs);
-  }
-}
-
-Future<void> _displayTextInputDialog(
-    BuildContext context, SharedPreferences prefs) async {
-  TextEditingController _textFieldController = new TextEditingController();
-  return showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text('نام خود را وارد کنید'),
-        content: TextField(
-          controller: _textFieldController,
-          decoration: InputDecoration(hintText: "نام شما ..."),
-        ),
-        actions: [
-          TextButton(
-            child: Text('تایید'),
-            onPressed: () async {
-              if (_textFieldController.text == "" ||
-                  _textFieldController.text == null) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                    "نام خود را وارد کنید!",
-                    style: TextStyle(fontFamily: "Vazir"),
-                    textAlign: TextAlign.end,
-                  ),
-                ));
-              } else {
-                await prefs.setBool('is_name', true);
-                await prefs.setString('name', _textFieldController.text);
-                _textFieldController.text = "";
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text(
-                    "نام شما با موفقیت ذخیره شد!",
-                    style: TextStyle(fontFamily: "Vazir"),
-                    textAlign: TextAlign.end,
-                  ),
-                ));
-              }
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
 Future<String> get _localPath async {
   final directory = await getExternalStorageDirectory();
   return directory!.path;
@@ -287,46 +205,54 @@ Future<File> get _localFile async {
 Future<File> writeCounter(String text) async {
   final file = await _localFile;
   final result = file.writeAsString(text);
-  print('result => file saved');
   return result;
 }
 
 sendFile(context) async {
   final file = await _localFile;
-  print('file => ' + file.path);
-  bool is_send = await WeekendServer.SendFileInWeekend(file.path);
+  bool is_send = await WeekendServer.sendFileInWeekend(file.path);
   if (is_send) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text(
-        "فایل با موفقیت به سرور ارسال شد!",
-        style: TextStyle(fontFamily: "Vazir"),
-        textAlign: TextAlign.end,
-      ),
-    ));
+    Alert(
+      context: context,
+      type: AlertType.success,
+      title: "موفقیت آمیز",
+      desc: "اطلاعات با موفقیت در سرور ذخیره شد",
+      buttons: [
+        DialogButton(
+          child: const Text(
+            "بازگشت",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Color.fromRGBO(0, 179, 134, 1.0),
+        )
+      ],
+    ).show();
   } else {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text(
-        "خطا در ارسال فایل سمت سرور لطفا مجددا تلاش کنید!",
-        style: TextStyle(fontFamily: "Vazir"),
-        textAlign: TextAlign.end,
-      ),
-    ));
+    Alert(
+      context: context,
+      type: AlertType.error,
+      title: "خطا در ارسال",
+      desc: "!ارسال اطلاعات سمت سرور با خطا مواجه شد",
+      buttons: [
+        DialogButton(
+          child: const Text(
+            "بازگشت",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Color.fromRGBO(0, 179, 134, 1.0),
+        )
+      ],
+    ).show();
   }
 }
 
 getFile(context) async {
-  // Weekend weekend = await WeekendServer.GetWeekendData();
-  // if(weekend.success == "false"){
-  //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //     content: Text(
-  //       "شما داده ای در سرور ذخیره نکرده اید!",
-  //       style: TextStyle(fontFamily: "Vazir"),
-  //       textAlign: TextAlign.end,
-  //     ),
-  //   ));
-  // }else{
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   String? dataCode = prefs.getInt('code')?.toString();
   await launch("https://weekly.kashandevops.ir/media/media/plan$dataCode.html");
   // }
 }
+
+
