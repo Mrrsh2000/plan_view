@@ -2,7 +2,7 @@
     package="com.example.plan_view">
     <uses-permission android:name="android.permission.INTERNET" />
    <application
-        android:label="plan_view"
+        android:label="برنامه هفتگی"
         android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
         <activity

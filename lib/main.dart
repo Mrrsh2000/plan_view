@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:future_progress_dialog/future_progress_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:plan_view/api/request/weekly_request.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
@@ -98,8 +99,29 @@ class _MyHomePageState extends State<MyHomePage> {
         title: const Text('داده پرداز تدبیر فردا'),
         actions: [
           TextButton(
-            onPressed: () {
-              getFile(context);
+            onPressed: () async {
+              final SharedPreferences prefs = await SharedPreferences.getInstance();
+              String code = await prefs.get('code').toString();
+              if (code == "" || code == null){
+                Alert(
+                  context: context,
+                  type: AlertType.error,
+                  title: "خطا",
+                  desc: "لطفا ابتدا فایل خود را ذخیره کنید",
+                  buttons: [
+                    DialogButton(
+                      child: const Text(
+                        "بازگشت",
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      color: Color.fromRGBO(0, 179, 134, 1.0),
+                    )
+                  ],
+                ).show();
+              }else{
+                getFile(context);
+              }
             },
             child: const Text(
               "نمایش وب",
@@ -123,6 +145,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
                     await createMapData(11, 7, controller);
                     await saveWeekendWeb(11, 7, controller);
+                    await showDialog(
+                      context: context,
+                      builder: (context) =>
+                          FutureProgressDialog(Future.delayed(const Duration(seconds: 2), () {}), message: const Text('...لطفا منتظر بمانید')),
+                    );
                     await sendFile(context);
                     await saveWeekendLocal(11, 7, controller);
                   }
