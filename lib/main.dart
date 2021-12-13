@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'dart:math';
 
+import 'package:expendable_fab/expendable_fab.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:future_progress_dialog/future_progress_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:plan_view/api/request/weekly_request.dart';
@@ -11,7 +12,6 @@ import 'package:table_sticky_headers/table_sticky_headers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'varibles.dart';
-import 'api/model/weekend_model.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -100,9 +100,10 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           TextButton(
             onPressed: () async {
-              final SharedPreferences prefs = await SharedPreferences.getInstance();
+              final SharedPreferences prefs =
+                  await SharedPreferences.getInstance();
               String code = await prefs.get('code').toString();
-              if (code == "" || code == null){
+              if (code == "null") {
                 Alert(
                   context: context,
                   type: AlertType.error,
@@ -119,7 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     )
                   ],
                 ).show();
-              }else{
+              } else {
                 getFile(context);
               }
             },
@@ -147,11 +148,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     await saveWeekendWeb(11, 7, controller);
                     await showDialog(
                       context: context,
-                      builder: (context) =>
-                          FutureProgressDialog(Future.delayed(const Duration(seconds: 2), () {}), message: const Text('...لطفا منتظر بمانید')),
+                      builder: (context) => FutureProgressDialog(
+                          Future.delayed(const Duration(seconds: 2), () {}),
+                          message: const Text('...لطفا منتظر بمانید')),
                     );
                     await sendFile(context);
                     await saveWeekendLocal(11, 7, controller);
+                    await WeekendServer.getWeekendData();
                   }
                 } on SocketException catch (_) {
                   Alert(
@@ -213,73 +216,60 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         legendCell: const Text('روز های هفته'),
       ),
+      floatingActionButton: ExpendableFab(
+        distance: 112.0,
+        children: [
+          ActionButton(
+            onPressed: () => getName(context, valid: true),
+            icon: const Icon(Icons.create_rounded),
+          ),
+          ActionButton(
+            onPressed: () => codeTextInputDialog(context, controller),
+            icon: const Icon(Icons.code),
+          ),
+          ActionButton(
+            onPressed: () async {
+              final SharedPreferences prefs = await SharedPreferences.getInstance();
+              String name = prefs.get('name').toString();
+              String code = prefs.get('code').toString();
+              Alert(
+                context: context,
+                type: AlertType.info,
+                title: "اطلاعات شما",
+                desc: "نام شما : $name" +
+                    "\n" +
+                    "$code : کد یکتای شما",
+                buttons: [
+                  DialogButton(
+                    child: const Center(
+                      child: Text(
+                        "کپی کردن کد",
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    onPressed: () {
+                      showToast(
+                          "کد یکتا کپی شد", Colors.green, Colors.black);
+                      Clipboard.setData(ClipboardData(text: code));
+                    },
+                    color: const Color.fromRGBO(90, 116, 204, 1.0),
+                  ),
+                  DialogButton(
+                    child: const Text(
+                      "بازگشت",
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    color: Color.fromRGBO(0, 179, 134, 1.0),
+                  )
+                ],
+              ).show();
+            },
+            icon: const Icon(Icons.article_rounded),
+          ),
+        ],
+      ),
     );
   }
 }
-
-Future<String> get _localPath async {
-  final directory = await getExternalStorageDirectory();
-  return directory!.path;
-}
-
-Future<File> get _localFile async {
-  final path = await _localPath;
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? dataCode = prefs.getInt('code')?.toString();
-  return File('$path/plan$dataCode.html');
-}
-
-Future<File> writeCounter(String text) async {
-  final file = await _localFile;
-  final result = file.writeAsString(text);
-  return result;
-}
-
-sendFile(context) async {
-  final file = await _localFile;
-  bool is_send = await WeekendServer.sendFileInWeekend(file.path);
-  if (is_send) {
-    Alert(
-      context: context,
-      type: AlertType.success,
-      title: "موفقیت آمیز",
-      desc: "اطلاعات با موفقیت در سرور ذخیره شد",
-      buttons: [
-        DialogButton(
-          child: const Text(
-            "بازگشت",
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Color.fromRGBO(0, 179, 134, 1.0),
-        )
-      ],
-    ).show();
-  } else {
-    Alert(
-      context: context,
-      type: AlertType.error,
-      title: "خطا در ارسال",
-      desc: "!ارسال اطلاعات سمت سرور با خطا مواجه شد",
-      buttons: [
-        DialogButton(
-          child: const Text(
-            "بازگشت",
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Color.fromRGBO(0, 179, 134, 1.0),
-        )
-      ],
-    ).show();
-  }
-}
-
-getFile(context) async {
-  final SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? dataCode = prefs.getInt('code')?.toString();
-  await launch("https://weekly.kashandevops.ir/media/media/plan$dataCode.html");
-  // }
-}
-
-

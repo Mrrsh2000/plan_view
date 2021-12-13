@@ -3,11 +3,14 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:plan_view/api/model/weekend_model.dart';
 import 'package:plan_view/api/request/weekly_request.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'main.dart';
 
@@ -54,8 +57,11 @@ String footer = '</tbody></table></body></html>';
 
 createToken() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  int code = Random().nextInt(10000000);
-  await prefs.setInt('code', code);
+  String code = prefs.get('code').toString();
+  if (code == "null"){
+    int code = Random().nextInt(10000000);
+    await prefs.setString('code', code.toString());
+  }
 }
 
 clearToken() {}
@@ -79,7 +85,7 @@ saveWeekendWeb(
     html = html + "/<tr>";
   }
   html = html + footer;
-  writeCounter(html);
+  await writeCounter(html);
 }
 
 saveWeekendLocal(
@@ -222,15 +228,19 @@ loadMapData(String? data) async {
     result.putIfAbsent(s[0].trim(), () => s[1].trim());
   }
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  var reversed = Map.fromEntries(result.entries.map((e) => MapEntry(e.value, e.key)));
+  var reversed =
+      Map.fromEntries(result.entries.map((e) => MapEntry(e.value, e.key)));
   for (var kv in reversed.entries) {
     await prefs.setString('counter${kv.value}', kv.key ?? "");
   }
 }
 
-getName(context) async {
+getName(context, {bool? valid}) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   if (prefs.getBool('is_name') == false || prefs.getBool('is_name') == null) {
+    _displayTextInputDialog(context, prefs);
+  }
+  if (valid!) {
     _displayTextInputDialog(context, prefs);
   }
 }
@@ -242,14 +252,14 @@ Future<void> _displayTextInputDialog(
     context: context,
     builder: (context) {
       return AlertDialog(
-        title: Text('نام خود را وارد کنید'),
+        title: const Text('نام خود را وارد کنید'),
         content: TextField(
           controller: _textFieldController,
-          decoration: InputDecoration(hintText: "نام شما ..."),
+          decoration: const InputDecoration(hintText: "نام شما ..."),
         ),
         actions: [
           TextButton(
-            child: Text('تایید'),
+            child: const Text('تایید'),
             onPressed: () async {
               if (_textFieldController.text == "" ||
                   _textFieldController.text == null) {
@@ -279,4 +289,133 @@ Future<void> _displayTextInputDialog(
       );
     },
   );
+}
+
+Future<void> codeTextInputDialog(BuildContext context, List<List<TextEditingController>> controller) async {
+  TextEditingController _textFieldController = TextEditingController();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  return showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text(': کد یکتای مورد نظر خود را وارد کنید'),
+        content: TextField(
+          controller: _textFieldController,
+          keyboardType: TextInputType.number,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly
+          ],
+          decoration: const InputDecoration(hintText: "... کد شما"),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('تایید'),
+            onPressed: () async {
+              if (_textFieldController.text == "" ||
+                  _textFieldController.text.length != 7) {
+                showToast(
+                    "کد وارد شده صحیح نمی باشد", Colors.red, Colors.black);
+              } else {
+                Weekend response = await WeekendServer.getWeekendData(code: _textFieldController.text);
+                if(response.success ?? false){
+                  await loadMapData(response.data);
+                  await loadWeekendDevice(11, 7, controller);
+                  showToast("اطلاعات با موفقیت از سرور خوانده شد", Colors.green,
+                      Colors.black);
+                  _textFieldController.text = "";
+                  Navigator.pop(context);
+                }else{
+                  showToast(
+                      "کد وارد شده در سرور موجود نیست", Colors.red, Colors.black);
+                }
+              }
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<String> get _localPath async {
+  final directory = await getExternalStorageDirectory();
+  return directory!.path;
+}
+
+Future<File> get _localFile async {
+  final path = await _localPath;
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? dataCode = prefs.getString('code')?.toString();
+  return File('$path/plan$dataCode.html');
+}
+
+Future<File> writeCounter(String text) async {
+  final file = await _localFile;
+  final result = file.writeAsString(text);
+  return result;
+}
+
+sendFile(context) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  String code = prefs.get('code').toString();
+  final file = await _localFile;
+  bool is_send = await WeekendServer.sendFileInWeekend(file.path);
+  if (is_send) {
+    Alert(
+      context: context,
+      type: AlertType.success,
+      title: "موفقیت آمیز",
+      desc: "اطلاعات با موفقیت در سرور ذخیره شد" +
+      "\n" + "$code : کد یکتای شما",
+      buttons: [
+        DialogButton(
+          child: const Center(
+            child: Text(
+              "کپی کردن کد",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          onPressed: () {
+            showToast(
+                "کد یکتا کپی شد", Colors.green, Colors.black);
+            Clipboard.setData(ClipboardData(text: code));
+          },
+          color: const Color.fromRGBO(90, 116, 204, 1.0),
+        ),
+        DialogButton(
+          child: const Text(
+            "بازگشت",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Color.fromRGBO(0, 179, 134, 1.0),
+        )
+      ],
+    ).show();
+  } else {
+    Alert(
+      context: context,
+      type: AlertType.error,
+      title: "خطا در ارسال",
+      desc: "!ارسال اطلاعات سمت سرور با خطا مواجه شد",
+      buttons: [
+        DialogButton(
+          child: const Text(
+            "بازگشت",
+            style: TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Color.fromRGBO(0, 179, 134, 1.0),
+        )
+      ],
+    ).show();
+  }
+}
+
+getFile(context) async {
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? html_file = "https://weekly.kashandevops.ir" + prefs.getString('html_file').toString();
+  await launch(html_file);
+  // }
 }
