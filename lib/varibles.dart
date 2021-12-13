@@ -190,7 +190,7 @@ loadWeekendDevice(
   SharedPreferences prefs = await SharedPreferences.getInstance();
   for (int i = 0; i < value_i; i++) {
     for (int j = 0; j < value_j; j++) {
-      data[i][j].text = prefs.getString('counter$i$j')!;
+      data[i][j].text = prefs.getString('counter$i$j') ?? "";
     }
   }
 }
@@ -317,7 +317,7 @@ Future<void> codeTextInputDialog(BuildContext context, List<List<TextEditingCont
                     "کد وارد شده صحیح نمی باشد", Colors.red, Colors.black);
               } else {
                 Weekend response = await WeekendServer.getWeekendData(code: _textFieldController.text);
-                if(response.success ?? false){
+                if(response.success ?? true){
                   await loadMapData(response.data);
                   await loadWeekendDevice(11, 7, controller);
                   showToast("اطلاعات با موفقیت از سرور خوانده شد", Colors.green,
